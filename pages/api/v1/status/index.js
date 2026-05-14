@@ -9,11 +9,14 @@ async function status(request, response) {
   const maxConnections = getMaxConnections.rows[0].max_connections;
   // console.log(getMaxConnections.rows[0].max_connections);
 
-  const getUsedConnections = await database.query(
-    "SELECT pid, usename, client_addr, state, query FROM pg_stat_activity WHERE state != 'idle';"
+  const databaseName = request.query.databaseName;
+  console.log(`Banco de dados selecionado: ${databaseName}`);
+  const getOpenedConnections = await database.query(
+    `SELECT count(*)::int FROM pg_stat_activity WHERE datname = '${databaseName}';`
+    // "SELECT count(*)::int FROM pg_stat_activity WHERE datname = 'local_db';"
   );
-  const usedConnections = getUsedConnections.rows.length;
-  // console.log(usedConnections);
+  const openedConnections = getOpenedConnections.rows[0].count;
+  // console.log(openedConnections);
 
   const updatedAt = new Date().toISOString();
 
@@ -22,8 +25,8 @@ async function status(request, response) {
     dependencies: {
       database: {
         version: serverVersion,
-        max_connections: maxConnections,
-        used_connections: usedConnections,
+        max_connections: parseInt(maxConnections),
+        opened_connections: openedConnections,
       },
     },
   });
